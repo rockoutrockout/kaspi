@@ -14,6 +14,7 @@ export default function IdCardEditorModal({ open, onClose }) {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file || !file.type.startsWith('image/')) return;
+    
     setBusy(true);
     try {
       const isFront = type === 'front';
@@ -29,28 +30,37 @@ export default function IdCardEditorModal({ open, onClose }) {
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-6 backdrop-blur-sm">
       <div className="w-full max-w-xs rounded-2xl bg-white p-6 shadow-xl">
-        <h3 className="mb-4 text-center font-bold text-zinc-900">Загрузка сторон удостоверения</h3>
+        <h3 className="mb-4 text-center font-bold text-zinc-900">
+          {busy ? 'Обработка фото...' : 'Загрузка сторон удостоверения'}
+        </h3>
         
         <div className="space-y-3">
           <input ref={frontRef} type="file" accept="image/*" className="hidden" onChange={(e) => handlePick(e, 'front')} />
           <button
+            disabled={busy}
             onClick={() => frontRef.current?.click()}
-            className="w-full rounded-xl border border-zinc-200 bg-zinc-50 py-4 font-semibold text-zinc-700"
+            className={`w-full rounded-xl border border-zinc-200 py-4 font-semibold transition-opacity ${
+              busy ? 'bg-zinc-200 text-zinc-400 opacity-50' : 'bg-zinc-50 text-zinc-700'
+            }`}
           >
             {data.frontPhotoDataUrl ? '✅ Лицевая добавлена' : '📁 Выбрать Лицевую'}
           </button>
 
           <input ref={backRef} type="file" accept="image/*" className="hidden" onChange={(e) => handlePick(e, 'back')} />
           <button
+            disabled={busy}
             onClick={() => backRef.current?.click()}
-            className="w-full rounded-xl border border-zinc-200 bg-zinc-50 py-4 font-semibold text-zinc-700"
+            className={`w-full rounded-xl border border-zinc-200 py-4 font-semibold transition-opacity ${
+              busy ? 'bg-zinc-200 text-zinc-400 opacity-50' : 'bg-zinc-50 text-zinc-700'
+            }`}
           >
             {data.backPhotoDataUrl ? '✅ Обратная добавлена' : '📁 Выбрать Обратную'}
           </button>
 
           <button
             onClick={onClose}
-            className="mt-4 w-full rounded-xl bg-red-500 py-4 font-bold text-white active:bg-red-600"
+            className="mt-4 w-full rounded-xl bg-red-500 py-4 font-bold text-white active:bg-red-600 disabled:bg-zinc-300"
+            disabled={busy}
           >
             Закрыть
           </button>
