@@ -1,57 +1,68 @@
 import React, { useState } from 'react';
 import { useIdCard } from '../context/IdCardContext';
 import IdCardEditorModal from './IdCardEditorModal';
+import IdCardRequisitesEditorModal from './IdCardRequisitesEditorModal';
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 
 export default function IDCardScreen({ setPage }) {
   const { data } = useIdCard();
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [tab, setTab] = useState('doc'); // 'doc' или 'req'
+  const [photoEditorOpen, setPhotoEditorOpen] = useState(false);
+  const [reqEditorOpen, setReqEditorOpen] = useState(false);
+  const [tab, setTab] = useState('doc'); 
+  const [qrModalOpen, setQrModalOpen] = useState(false); 
+  
+  const [isEditingCode, setIsEditingCode] = useState(false);
+  const [newCode, setNewCode] = useState('056668');
 
-  // Данные извлечены из image_9ddb5a.jpg и image_9dddedb.png
   const requisites = [
-    { label: 'Фамилия', value: 'БЕКЕНОВ' },
-    { label: 'Имя', value: 'ИЛИЯС' },
-    { label: 'Отчество', value: 'ЕРІКҰЛЫ' },
-    { label: 'ИИН', value: '020820501234' }, // ИИН обычно начинается с даты рождения (20.08.2002)
-    { label: 'Номер документа', value: '052752327' },
-    { label: 'Дата рождения', value: '20.08.2002' },
-    { label: 'Место рождения', value: 'АЛМАТЫ' },
-    { label: 'Национальность', value: 'ҚАЗАҚ' },
-    { label: 'Орган выдачи', value: 'ҚР ІШКІ ІСТЕР МИНИСТРЛІГІ' },
-    { label: 'Дата выдачи', value: '03.03.2020' },
-    { label: 'Срок действия', value: '02.03.2030' },
+    { label: 'Фамилия', value: data.surname },
+    { label: 'Имя', value: data.name },
+    { label: 'Отчество', value: data.patronymic },
+    { label: 'ИИН', value: data.iin },
+    { label: 'Номер документа', value: data.docNum },
+    { label: 'Дата рождения', value: data.birthDate },
+    { label: 'Место рождения', value: data.birthPlace },
+    { label: 'Национальность', value: data.nationality },
+    { label: 'Орган выдачи', value: data.issuer },
+    { label: 'Дата выдачи', value: data.issueDate },
+    { label: 'Срок действия', value: data.validDate },
   ];
 
+  const isPdf = data.photoDataUrl && (data.photoDataUrl.startsWith('data:application/pdf') || data.photoDataUrl.endsWith('.pdf'));
+
+  const handleSaveCode = () => {
+    setIsEditingCode(false);
+  };
+
   return (
-    <div className="relative flex min-h-full flex-col bg-white">
+    <div className="relative flex h-full min-h-screen w-full flex-col bg-[#F2F4F7] overflow-y-auto">
       {/* HEADER */}
-      <header className="relative bg-white pt-safe">
+      <header className="relative bg-white pt-safe shadow-sm z-10 shrink-0">
         <div className="flex items-center justify-between px-4 py-3">
-          <button onClick={() => setPage('services')} className="text-2xl text-red-500">
+          <button onClick={() => setPage('services')} className="text-2xl text-zinc-400 active:opacity-60">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
           <h1 className="text-[17px] font-medium text-zinc-800">Удостоверение личности</h1>
           
-          {/* ПРОЗРАЧНАЯ КНОПКА РЕДАКТИРОВАНИЯ */}
           <button 
-            onClick={() => setEditorOpen(true)} 
-            className="absolute right-0 top-0 z-50 h-12 w-12 opacity-0"
+            onClick={() => setReqEditorOpen(true)} 
+            className="absolute right-0 top-0 z-50 h-14 w-14 bg-transparent opacity-0 cursor-default"
           />
           <div className="w-6" />
         </div>
 
         {/* TABS */}
         <div className="px-4 pb-3">
-          <div className="flex overflow-hidden rounded-lg border border-red-500">
+          <div className="flex overflow-hidden rounded-lg bg-zinc-100 p-0.5">
             <button 
               onClick={() => setTab('doc')}
-              className={`flex-1 py-1.5 text-[13px] font-medium transition-colors ${tab === 'doc' ? 'bg-red-500 text-white' : 'text-red-500'}`}
+              className={`flex-1 rounded-md py-1.5 text-[13px] font-medium transition-all ${tab === 'doc' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'}`}
             >
               Документ
             </button>
             <button 
               onClick={() => setTab('req')}
-              className={`flex-1 py-1.5 text-[13px] font-medium transition-colors ${tab === 'req' ? 'bg-red-500 text-white' : 'text-red-500'}`}
+              className={`flex-1 rounded-md py-1.5 text-[13px] font-medium transition-all ${tab === 'req' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'}`}
             >
               Реквизиты
             </button>
@@ -59,54 +70,151 @@ export default function IDCardScreen({ setPage }) {
         </div>
       </header>
 
-      <IdCardEditorModal open={editorOpen} onClose={() => setEditorOpen(false)} />
+      {/* MODALS */}
+      <IdCardEditorModal open={photoEditorOpen} onClose={() => setPhotoEditorOpen(false)} />
+      <IdCardRequisitesEditorModal open={reqEditorOpen} onClose={() => setReqEditorOpen(false)} />
 
-      {/* CONTENT */}
-      <div className="flex-1 overflow-y-auto bg-[#F2F4F7]">
+      {/* MAIN CONTENT AREA */}
+      <div className="flex-1 flex flex-col bg-white relative">
+        
+        {tab === 'doc' && (
+          <button 
+            onClick={() => setPhotoEditorOpen(true)}
+            className="absolute right-2 top-2 z-50 w-12 h-12 bg-transparent opacity-0 cursor-default"
+            title="Изменить файл документа"
+          />
+        )}
+
         {tab === 'doc' ? (
-          /* ВКЛАДКА: ДОКУМЕНТ (ФОТО) */
-          <div className="p-4 space-y-3">
-            <div className="w-full overflow-hidden rounded-xl bg-white shadow-sm">
-              {data.frontPhotoDataUrl ? (
-                <img src={data.frontPhotoDataUrl} className="w-full" alt="Front" />
-              ) : (
-                <div className="aspect-[1.58/1] flex items-center justify-center text-zinc-400">Лицевая сторона</div>
-              )}
-            </div>
-            <div className="w-full overflow-hidden rounded-xl bg-white shadow-sm">
-              {data.backPhotoDataUrl ? (
-                <img src={data.backPhotoDataUrl} className="w-full" alt="Back" />
-              ) : (
-                <div className="aspect-[1.58/1] flex items-center justify-center text-zinc-400">Обратная сторона</div>
-              )}
-            </div>
+          <div className="w-full bg-white relative flex items-center justify-center">
+            <TransformWrapper 
+              initialScale={1} 
+              minScale={1} 
+              maxScale={4} 
+              centerOnInit={true}
+              limitToBounds={true}
+              disabled={false}
+              panning={{ disabled: true }}
+            >
+              <TransformComponent wrapperStyle={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div className="w-full flex items-center justify-center relative overflow-hidden select-none">
+                  {data.photoDataUrl ? (
+                    isPdf ? (
+                      <div className="w-full h-[500px] flex items-center justify-center">
+                        <iframe 
+                          src={`${data.photoDataUrl}#toolbar=0&navpanes=0&statusbar=0&view=Fit&zoom=100`} 
+                          className="w-full h-full border-none pointer-events-none"
+                          title="Identity Card PDF"
+                          scrolling="no"
+                        />
+                      </div>
+                    ) : (
+                      <img 
+                        src={data.photoDataUrl} 
+                        className="w-full h-auto object-contain" 
+                        alt="Identity Card" 
+                      />
+                    )
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-zinc-400 w-full text-sm p-8 text-center bg-zinc-50">
+                      <span>Удостоверение личности не загружено</span>
+                    </div>
+                  )}
+                </div>
+              </TransformComponent>
+            </TransformWrapper>
           </div>
         ) : (
-          /* ВКЛАДКА: РЕКВИЗИТЫ (ТЕКСТ) */
-          <div className="divide-y divide-zinc-200 bg-white">
-            {requisites.map((item, idx) => (
-              <div key={idx} className="flex flex-col px-4 py-3">
-                <span className="text-[12px] text-zinc-500">{item.label}</span>
-                <span className="text-[15px] font-medium text-zinc-900 mt-0.5">{item.value}</span>
+          <div className="flex-1 p-4 bg-[#F2F4F7]">
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
+              <div className="divide-y divide-zinc-100">
+                {requisites.map((item, idx) => (
+                  <div key={idx} className="flex flex-col px-4 py-3">
+                    <span className="text-[11px] font-medium text-zinc-400 uppercase tracking-wide">{item.label}</span>
+                    <span className="text-[15px] font-semibold text-zinc-900 mt-0.5">{item.value}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-            <div className="h-20 bg-[#F2F4F7]" /> {/* Отступ снизу */}
+            </div>
           </div>
         )}
       </div>
 
       {/* BOTTOM BUTTONS */}
-      <div className="bg-white px-4 py-4 pb-safe space-y-4 shadow-[0_-1px_10px_rgba(0,0,0,0.05)]">
-        <button className="flex w-full items-center justify-center gap-3 rounded-xl bg-[#0089d0] py-3.5 text-[15px] font-bold text-white active:opacity-90">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/></svg>
-          Предъявить документ
-        </button>
-        
-        <button className="flex w-full items-center justify-center gap-2 py-1 text-[15px] font-bold text-[#0089d0]">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-          Отправить документ
-        </button>
+      <div className="bg-white px-4 py-4 pb-safe space-y-3 border-t border-zinc-100 z-10 shrink-0 shadow-[0_-1px_3px_rgba(0,0,0,0.03)] relative mt-auto">
+        {isEditingCode ? (
+          <div className="p-2 bg-zinc-50 rounded-xl border border-zinc-200 space-y-2">
+            <input 
+              type="text" 
+              value={newCode} 
+              onChange={(e) => setNewCode(e.target.value)}
+              className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-center font-bold text-lg text-zinc-800 focus:outline-none focus:border-[#0089d0]"
+              placeholder="Введите новый код"
+            />
+            <button 
+              onClick={handleSaveCode}
+              className="w-full bg-zinc-800 text-white font-bold py-2 rounded-lg text-sm active:bg-zinc-700"
+            >
+              Применить код
+            </button>
+          </div>
+        ) : (
+          <>
+            <button 
+              onClick={() => setQrModalOpen(true)} 
+              className="flex w-full items-center justify-center gap-3 rounded-xl bg-[#0089d0] py-3.5 text-[15px] font-bold text-white active:bg-[#0077b5] transition-colors"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="7" y1="8" x2="17" height="8"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/></svg>
+              Предъявить документ
+            </button>
+            
+            <button className="flex w-full items-center justify-center gap-2 py-3 rounded-xl border-2 border-[#0089d0] text-[15px] font-bold text-[#0089d0] active:bg-[#0089d0]/10 transition-colors">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+              Отправить документ
+            </button>
+          </>
+        )}
+
+        <button 
+          type="button"
+          onClick={() => setIsEditingCode(!isEditingCode)}
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-4 bg-transparent opacity-0 z-50 cursor-default"
+        />
       </div>
+
+      {/* QR MODAL */}
+      {qrModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 transition-opacity duration-300">
+          <div className="absolute inset-0" onClick={() => setQrModalOpen(false)} />
+          
+          <div className="relative w-full rounded-t-2xl bg-white px-6 pb-10 pt-5 text-center shadow-xl z-10 transform translate-y-0 transition-transform duration-300 ease-out max-w-md mx-auto">
+            <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-zinc-200" />
+            
+            <button 
+              onClick={() => setQrModalOpen(false)}
+              className="absolute right-4 top-4 rounded-full p-1 text-zinc-400 hover:bg-zinc-100 active:scale-95 transition-all"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+
+            <h3 className="text-lg font-bold text-zinc-800">Удостоверение личности</h3>
+            <p className="mt-1.5 text-[14px] text-zinc-500 font-medium">Покажите QR-код сотруднику</p>
+            
+            <div className="my-5 flex justify-center">
+              <div className="rounded-2xl border border-zinc-100 p-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] bg-white">
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=KaspiID-${newCode}&color=18181b`} 
+                  alt="Kaspi QR Code"
+                  className="w-[150px] h-[150px] object-contain"
+                />
+              </div>
+            </div>
+
+            <p className="text-[12px] text-zinc-400 font-medium uppercase tracking-wider">или скажите код</p>
+            <p className="mt-1.5 text-2xl font-bold text-zinc-900 tracking-wide">{newCode}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
