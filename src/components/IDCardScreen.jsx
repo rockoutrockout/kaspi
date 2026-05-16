@@ -82,14 +82,14 @@ export default function IDCardScreen({ setPage }) {
     photoDataUrl: data?.photoDataUrl || ''
   };
 
-  // Единый массив реквизитов с одной строкой ФИО
+  // Ключ id добавлен, чтобы определять правила регистра для ФИО и ИИН
   const requisites = [
-    { label: 'ФИО', value: currentData.fio },
-    { label: 'ИИН', value: currentData.iin },
-    { label: 'Дата рождения', value: currentData.birthDate },
-    { label: 'Номер документа', value: currentData.docNum },
-    { label: 'Дата выдачи', value: currentData.issueDate },
-    { label: 'Срок действия', value: currentData.validDate },
+    { id: 'fio', label: 'ФИО', value: currentData.fio },
+    { id: 'iin', label: 'ИИН', value: currentData.iin },
+    { id: 'birthDate', label: 'Дата рождения', value: currentData.birthDate },
+    { id: 'docNum', label: 'Номер документа', value: currentData.docNum },
+    { id: 'issueDate', label: 'Дата выдачи', value: currentData.issueDate },
+    { id: 'validDate', label: 'Срок действия', value: currentData.validDate },
   ];
 
   const photoUrl = currentData.photoDataUrl;
@@ -118,7 +118,7 @@ export default function IDCardScreen({ setPage }) {
           <button onClick={() => setPage('services')} className="text-2xl text-zinc-400 active:opacity-60">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
-          <h1 className="text-[17px] font-medium text-zinc-800">Удостоверение личности</h1>
+          <h1 className="text-[17px] font-normal text-zinc-800">Удостоверение личности</h1>
           
           {/* Секретная зона для открытия модалки */}
           <button 
@@ -133,13 +133,13 @@ export default function IDCardScreen({ setPage }) {
           <div className="flex overflow-hidden rounded-lg bg-zinc-100 p-0.5">
             <button 
               onClick={() => setTab('doc')}
-              className={`flex-1 rounded-md py-1.5 text-[13px] font-medium transition-all ${tab === 'doc' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'}`}
+              className={`flex-1 rounded-md py-1.5 text-[13px] font-normal transition-all ${tab === 'doc' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'}`}
             >
               Документ
             </button>
             <button 
               onClick={() => setTab('req')}
-              className={`flex-1 rounded-md py-1.5 text-[13px] font-medium transition-all ${tab === 'req' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'}`}
+              className={`flex-1 rounded-md py-1.5 text-[13px] font-normal transition-all ${tab === 'req' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'}`}
             >
               Реквизиты
             </button>
@@ -187,7 +187,7 @@ export default function IDCardScreen({ setPage }) {
                 <svg className="w-12 h-12 text-zinc-300 mb-3" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
                 </svg>
-                <span className="text-[14px] font-medium text-zinc-500">Удостоверение личности не загружено</span>
+                <span className="text-[14px] font-normal text-zinc-500">Удостоверение личности не загружено</span>
               </div>
             )}
           </div>
@@ -199,8 +199,15 @@ export default function IDCardScreen({ setPage }) {
                 {requisites.map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between px-4 py-3.5">
                     <div className="flex flex-col flex-1 pr-2">
-                      <span className="text-[11px] font-medium text-zinc-400 uppercase tracking-wide">{item.label}</span>
-                      <span className="text-[15px] font-semibold text-zinc-900 mt-0.5 break-all">{item.value || '—'}</span>
+                      {/* Названия строк теперь с Большой буквы и без капса (добавлен normal-case) */}
+                      <span className="text-[11px] font-normal text-zinc-400 normal-case tracking-wide">{item.label}</span>
+                      
+                      {/* Значение реквизита: ФИО и ИИН остаются в uppercase, остальные получают normal-case.font-semibold убран */}
+                      <span className={`text-[15px] font-normal text-zinc-900 mt-0.5 break-all ${
+                        item.id === 'fio' || item.id === 'iin' ? 'uppercase' : 'normal-case'
+                      }`}>
+                        {item.value || '—'}
+                      </span>
                     </div>
                     {item.value && (
                       <button
@@ -231,11 +238,11 @@ export default function IDCardScreen({ setPage }) {
               type="text" 
               value={newCode} 
               onChange={(e) => setNewCode(e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-center font-bold text-lg text-zinc-800 focus:outline-none focus:border-[#0089d0]"
+              className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-center font-normal text-lg text-zinc-800 focus:outline-none focus:border-[#0089d0]"
             />
             <button 
               onClick={handleSaveCode}
-              className="w-full bg-zinc-800 text-white font-bold py-2 rounded-lg text-sm active:bg-zinc-700"
+              className="w-full bg-zinc-800 text-white font-normal py-2 rounded-lg text-sm active:bg-zinc-700"
             >
               Применить код
             </button>
@@ -244,13 +251,13 @@ export default function IDCardScreen({ setPage }) {
           <>
             <button 
               onClick={() => setQrModalOpen(true)} 
-              className="flex w-full items-center justify-center gap-3 rounded-xl bg-[#0089d0] py-3.5 text-[15px] font-bold text-white active:bg-[#0077b5] transition-colors"
+              className="flex w-full items-center justify-center gap-3 rounded-xl bg-[#0089d0] py-3.5 text-[15px] font-normal text-white active:bg-[#0077b5] transition-colors"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="7" y1="8" x2="17" height="8"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/></svg>
               Предъявить документ
             </button>
             
-            <button type="button" className="flex w-full items-center justify-center gap-2 py-3 rounded-xl border-2 border-[#0089d0] text-[15px] font-bold text-[#0089d0] active:bg-[#0089d0]/10 transition-colors">
+            <button type="button" className="flex w-full items-center justify-center gap-2 py-3 rounded-xl border-2 border-[#0089d0] text-[15px] font-normal text-[#0089d0] active:bg-[#0089d0]/10 transition-colors">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
               Отправить документ
             </button>
@@ -258,7 +265,7 @@ export default function IDCardScreen({ setPage }) {
         ) : (
           <button 
             type="button" 
-            className="flex w-full items-center justify-center gap-2 py-3.5 rounded-xl border-2 border-[#0089d0] bg-white text-[15px] font-bold text-[#0089d0] active:bg-[#0089d0]/5 transition-colors"
+            className="flex w-full items-center justify-center gap-2 py-3.5 rounded-xl border-2 border-[#0089d0] bg-white text-[15px] font-normal text-[#0089d0] active:bg-[#0089d0]/5 transition-colors"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
@@ -285,8 +292,8 @@ export default function IDCardScreen({ setPage }) {
             <button onClick={() => setQrModalOpen(false)} className="absolute right-4 top-4 rounded-full p-1 text-zinc-400">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
-            <h3 className="text-lg font-bold text-zinc-800">Удостоверение личности</h3>
-            <p className="mt-1.5 text-[14px] text-zinc-500 font-medium">Покажите QR-код сотруднику</p>
+            <h3 className="text-lg font-normal text-zinc-800">Удостоверение личности</h3>
+            <p className="mt-1.5 text-[14px] text-zinc-500 font-normal">Покажите QR-код сотруднику</p>
             <div className="my-5 flex justify-center">
               <div className="rounded-2xl border border-zinc-100 p-4 bg-white">
                 <img 
@@ -296,8 +303,8 @@ export default function IDCardScreen({ setPage }) {
                 />
               </div>
             </div>
-            <p className="text-[12px] text-zinc-400 font-medium uppercase tracking-wider">или скажите код</p>
-            <p className="mt-1.5 text-2xl font-bold text-zinc-900 tracking-wide">{newCode}</p>
+            <p className="text-[12px] text-zinc-400 font-normal uppercase tracking-wider">или скажите код</p>
+            <p className="mt-1.5 text-2xl font-normal text-zinc-900 tracking-wide">{newCode}</p>
           </div>
         </div>
       )}

@@ -12,7 +12,7 @@ export default function HomeScreen({ setPage }) {
         <img 
           src="/kaspihome1.png" 
           alt="Kaspi Home Screen" 
-          className="w-full h-full object-cover pointer-events-none absolute top-0 left-0 z-10"
+          className="w-full h-full object-cover pointer-events-none absolute top-0 left-0 z-100"
           style={{ imageRendering: 'high-quality' }}
           onError={(e) => {
             console.error("Бро, проверь, что картинка лежит в папке public/ и называется kaspihome.png");
