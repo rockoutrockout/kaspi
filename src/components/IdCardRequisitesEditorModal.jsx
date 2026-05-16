@@ -4,34 +4,25 @@ import { useIdCard } from '../context/IdCardContext';
 export default function IdCardRequisitesEditorModal({ open, onClose }) {
   const { data, updateRequisites } = useIdCard();
 
+  // Начальные дефолтные данные с объединенным ФИО
   const [formData, setFormData] = useState({
-    surname: '',
-    name: '',
-    patronymic: '',
-    iin: '',
-    docNum: '',
-    birthDate: '',
-    birthPlace: '',
-    nationality: '',
-    issuer: '',
-    issueDate: '',
-    validDate: '',
+    fio: 'ЖАКУПОВ АДИЛЬ ТУЛЕУОВИЧ',
+    iin: '081115553353',
+    birthDate: '15.11.2004',
+    docNum: '058336131',
+    issueDate: '05.12.2020',
+    validDate: '04.12.2030',
   });
 
   useEffect(() => {
-    if (open && data) {
+    if (open) {
       setFormData({
-        surname: data.surname || '',
-        name: data.name || '',
-        patronymic: data.patronymic || '',
-        iin: data.iin || '',
-        docNum: data.docNum || '',
-        birthDate: data.birthDate || '',
-        birthPlace: data.birthPlace || '',
-        nationality: data.nationality || '',
-        issuer: data.issuer || '',
-        issueDate: data.issueDate || '',
-        validDate: data.validDate || '',
+        fio: data?.fio !== undefined ? data.fio : 'ЖАКУПОВ АДИЛЬ ТУЛЕУОВИЧ',
+        iin: data?.iin !== undefined ? data.iin : '081115553353',
+        birthDate: data?.birthDate !== undefined ? data.birthDate : '15.11.2004',
+        docNum: data?.docNum !== undefined ? data.docNum : '058336131',
+        issueDate: data?.issueDate !== undefined ? data.issueDate : '05.12.2020',
+        validDate: data?.validDate !== undefined ? data.validDate : '04.12.2030',
       });
     }
   }, [open, data]);
@@ -53,42 +44,35 @@ export default function IdCardRequisitesEditorModal({ open, onClose }) {
     onClose();
   };
 
+  const labels = {
+    fio: 'ФИО',
+    iin: 'ИИН',
+    birthDate: 'Дата рождения',
+    docNum: 'Номер документа',
+    issueDate: 'Дата выдачи',
+    validDate: 'Срок действия'
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto no-scrollbar">
         <h2 className="text-lg font-bold text-zinc-900 mb-4">Редактировать реквизиты</h2>
         
         <form onSubmit={handleSave} className="space-y-3">
-          {Object.keys(formData).map((key) => {
-            const labels = {
-              surname: 'Фамилия',
-              name: 'Имя',
-              patronymic: 'Отчество',
-              iin: 'ИИН',
-              docNum: 'Номер документа',
-              birthDate: 'Дата рождения',
-              birthPlace: 'Место рождения',
-              nationality: 'Национальность',
-              issuer: 'Орган выдачи',
-              issueDate: 'Дата выдачи',
-              validDate: 'Срок действия'
-            };
-
-            return (
-              <div key={key} className="flex flex-col">
-                <label className="text-xs font-semibold text-zinc-500 uppercase mb-1">
-                  {labels[key] || key}
-                </label>
-                <input
-                  type="text"
-                  name={key}
-                  value={formData[key]}
-                  onChange={handleChange}
-                  className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-800 focus:border-[#0089d0] focus:outline-none"
-                />
-              </div>
-            );
-          })}
+          {Object.keys(labels).map((key) => (
+            <div key={key} className="flex flex-col">
+              <label className="text-xs font-semibold text-zinc-500 uppercase mb-1">
+                {labels[key]}
+              </label>
+              <input
+                type="text"
+                name={key}
+                value={formData[key]}
+                onChange={handleChange}
+                className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-800 focus:border-[#0089d0] focus:outline-none"
+              />
+            </div>
+          ))}
 
           <div className="flex gap-3 pt-4">
             <button
