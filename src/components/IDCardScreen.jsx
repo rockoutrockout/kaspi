@@ -14,21 +14,27 @@ export default function IDCardScreen({ setPage }) {
   const [isEditingCode, setIsEditingCode] = useState(false);
   const [newCode, setNewCode] = useState('056668');
 
+  // Жесткая и безопасная проверка данных контекста
+  const currentData = data || {};
+
   const requisites = [
-    { label: 'Фамилия', value: data.surname },
-    { label: 'Имя', value: data.name },
-    { label: 'Отчество', value: data.patronymic },
-    { label: 'ИИН', value: data.iin },
-    { label: 'Номер документа', value: data.docNum },
-    { label: 'Дата рождения', value: data.birthDate },
-    { label: 'Место рождения', value: data.birthPlace },
-    { label: 'Национальность', value: data.nationality },
-    { label: 'Орган выдачи', value: data.issuer },
-    { label: 'Дата выдачи', value: data.issueDate },
-    { label: 'Срок действия', value: data.validDate },
+    { label: 'Фамилия', value: currentData.surname || '' },
+    { label: 'Имя', value: currentData.name || '' },
+    { label: 'Отчество', value: currentData.patronymic || '' },
+    { label: 'ИИН', value: currentData.iin || '' },
+    { label: 'Номер документа', value: currentData.docNum || '' },
+    { label: 'Дата рождения', value: currentData.birthDate || '' },
+    { label: 'Место рождения', value: currentData.birthPlace || '' },
+    { label: 'Национальность', value: currentData.nationality || '' },
+    { label: 'Орган выдачи', value: currentData.issuer || '' },
+    { label: 'Дата выдачи', value: currentData.issueDate || '' },
+    { label: 'Срок действия', value: currentData.validDate || '' },
   ];
 
-  const isPdf = data.photoDataUrl && (data.photoDataUrl.startsWith('data:application/pdf') || data.photoDataUrl.endsWith('.pdf'));
+  const photoUrl = currentData.photoDataUrl || '';
+  
+  // Безопасная проверка формата PDF (не упадёт, если данных нет)
+  const isPdf = photoUrl && (photoUrl.startsWith('data:application/pdf') || photoUrl.endsWith('.pdf'));
 
   const handleSaveCode = () => {
     setIsEditingCode(false);
@@ -44,6 +50,7 @@ export default function IDCardScreen({ setPage }) {
           </button>
           <h1 className="text-[17px] font-medium text-zinc-800">Удостоверение личности</h1>
           
+          {/* Секретная кнопка для редактирования реквизитов */}
           <button 
             onClick={() => setReqEditorOpen(true)} 
             className="absolute right-0 top-0 z-50 h-14 w-14 bg-transparent opacity-0 cursor-default"
@@ -77,52 +84,56 @@ export default function IDCardScreen({ setPage }) {
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col bg-white relative">
         
+        {/* Твоя секретная невидимая кнопка для загрузки/смены документа */}
         {tab === 'doc' && (
           <button 
             onClick={() => setPhotoEditorOpen(true)}
-            className="absolute right-2 top-2 z-50 w-12 h-12 bg-transparent opacity-0 cursor-default"
+            className="absolute right-0 top-0 z-50 w-16 h-16 bg-transparent opacity-0 cursor-default"
             title="Изменить файл документа"
           />
         )}
 
         {tab === 'doc' ? (
-          <div className="w-full bg-white relative flex items-center justify-center">
-            <TransformWrapper 
-              initialScale={1} 
-              minScale={1} 
-              maxScale={4} 
-              centerOnInit={true}
-              limitToBounds={true}
-              disabled={false}
-              panning={{ disabled: true }}
-            >
-              <TransformComponent wrapperStyle={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <div className="w-full flex items-center justify-center relative overflow-hidden select-none">
-                  {data.photoDataUrl ? (
-                    isPdf ? (
+          <div className="w-full flex-1 bg-white flex items-center justify-center p-4 min-h-[350px]">
+            {photoUrl ? (
+              <TransformWrapper 
+                initialScale={1} 
+                minScale={1} 
+                maxScale={4} 
+                limitToBounds={true}
+                disabled={false}
+                panning={{ disabled: true }}
+              >
+                <TransformComponent wrapperStyle={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div className="w-full flex items-center justify-center relative overflow-hidden select-none">
+                    {isPdf ? (
                       <div className="w-full h-[500px] flex items-center justify-center">
                         <iframe 
-                          src={`${data.photoDataUrl}#toolbar=0&navpanes=0&statusbar=0&view=Fit&zoom=100`} 
+                          src={`${photoUrl}#toolbar=0&navpanes=0&statusbar=0&view=Fit`} 
                           className="w-full h-full border-none pointer-events-none"
                           title="Identity Card PDF"
-                          scrolling="no"
                         />
                       </div>
                     ) : (
                       <img 
-                        src={data.photoDataUrl} 
-                        className="w-full h-auto object-contain" 
+                        src={photoUrl} 
+                        className="w-full max-h-[70vh] h-auto object-contain rounded-xl shadow-sm" 
                         alt="Identity Card" 
                       />
-                    )
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-zinc-400 w-full text-sm p-8 text-center bg-zinc-50">
-                      <span>Удостоверение личности не загружено</span>
-                    </div>
-                  )}
-                </div>
-              </TransformComponent>
-            </TransformWrapper>
+                    )}
+                  </div>
+                </TransformComponent>
+              </TransformWrapper>
+            ) : (
+              /* Красивый пустой плейсхолдер, если файл еще не добавлен */
+              <div className="flex flex-col items-center justify-center text-zinc-400 w-full max-w-sm p-8 text-center bg-zinc-50 rounded-2xl border-2 border-dashed border-zinc-200">
+                <svg className="w-12 h-12 text-zinc-300 mb-3" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+                </svg>
+                <span className="text-[14px] font-medium text-zinc-500">Удостоверение личности не загружено</span>
+                <span className="text-[11px] text-zinc-400 mt-1">Кликните в верхний правый угол экрана для добавления файла</span>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex-1 p-4 bg-[#F2F4F7]">
@@ -168,13 +179,14 @@ export default function IDCardScreen({ setPage }) {
               Предъявить документ
             </button>
             
-            <button className="flex w-full items-center justify-center gap-2 py-3 rounded-xl border-2 border-[#0089d0] text-[15px] font-bold text-[#0089d0] active:bg-[#0089d0]/10 transition-colors">
+            <button type="button" className="flex w-full items-center justify-center gap-2 py-3 rounded-xl border-2 border-[#0089d0] text-[15px] font-bold text-[#0089d0] active:bg-[#0089d0]/10 transition-colors">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
               Отправить документ
             </button>
           </>
         )}
 
+        {/* Секретная кнопка смены секретного кода */}
         <button 
           type="button"
           onClick={() => setIsEditingCode(!isEditingCode)}
@@ -187,7 +199,7 @@ export default function IDCardScreen({ setPage }) {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 transition-opacity duration-300">
           <div className="absolute inset-0" onClick={() => setQrModalOpen(false)} />
           
-          <div className="relative w-full rounded-t-2xl bg-white px-6 pb-10 pt-5 text-center shadow-xl z-10 transform translate-y-0 transition-transform duration-300 ease-out max-w-md mx-auto">
+          <div className="relative w-full rounded-t-2xl bg-white px-6 pb-10 pt-5 text-center shadow-xl z-10 max-w-md mx-auto">
             <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-zinc-200" />
             
             <button 
