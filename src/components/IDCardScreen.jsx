@@ -96,7 +96,7 @@ export default function IDCardScreen({ setPage }) {
               disabled={false}
               panning={{ disabled: true }}
             >
-              <TransformComponent wrapperStyle={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <TransformComponent wrapperStyle={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <div className="w-full flex items-center justify-center relative overflow-hidden select-none">
                   {data.photoDataUrl ? (
                     isPdf ? (
