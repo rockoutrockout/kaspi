@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useIdCard } from '../context/IdCardContext'; // Импортируем контекст
 
 function ChevronRight() {
@@ -34,17 +34,29 @@ function Row({ icon, label, onClick }) {
 }
 
 export default function ServicesScreen({ setPage }) {
-  // Достаем данные и функцию обновления из общего контекста
-  const { data, update } = useIdCard();
+  // Забираем данные и функцию обновления из общего контекста
+  const { data, updateRequisites } = useIdCard();
   
   // Состояние показа встроенного редактора и временный буфер для инпута
   const [isEditing, setIsEditing] = useState(false);
-  const [inputName, setInputName] = useState(data.childName || 'Бекенов Илияс Ерікұлы');
+  const [inputName, setInputName] = useState('');
+
+  // СИНХРОНИЗАЦИЯ: Как только данные загрузились из localStorage в контекст, 
+  // закидываем актуальное имя прямо в инпут формы редактирования.
+  useEffect(() => {
+    if (data && data.childName) {
+      setInputName(data.childName);
+    } else {
+      setInputName('Бекенов Илияс Ерікұлы');
+    }
+  }, [data]);
 
   const handleSave = () => {
     if (inputName.trim() !== '') {
-      // Сохраняем в глобальный контекст — теперь имя не сбросится при выходе
-      update({ childName: inputName.trim() });
+      // Сохраняем в глобальный контекст — теперь имя намертво пишется в localStorage
+      if (typeof updateRequisites === 'function') {
+        updateRequisites({ childName: inputName.trim() });
+      }
     }
     setIsEditing(false);
   };
@@ -126,9 +138,9 @@ export default function ServicesScreen({ setPage }) {
 
         <div className="h-2 w-full bg-zinc-100" />
 
-        {/* ГЛОБАЛЬНОЕ ИМЯ ИЗ КОНТЕКСТА */}
+        {/* ГЛОБАЛЬНОЕ ИМЯ ИЗ КОНТЕКСТА — НЕ СБРАСЫВАЕТСЯ ПРИ ВЫХОДЕ */}
         <p className="px-4 pb-1.5 pt-4 text-[12px] font-semibold uppercase tracking-wide text-zinc-500">
-          {data.childName || 'Бекенов Илияс Ерікұлы'}
+          {(data && data.childName) || 'Бекенов Илияс Ерікұлы'}
         </p>
         
         <Row
@@ -155,12 +167,14 @@ export default function ServicesScreen({ setPage }) {
             />
             <div className="flex gap-2">
               <button 
+                type="button"
                 onClick={handleSave}
                 className="flex-1 bg-zinc-900 text-white font-bold py-2 rounded-xl text-xs active:bg-zinc-800"
               >
                 Применить
               </button>
               <button 
+                type="button"
                 onClick={() => setIsEditing(false)}
                 className="px-4 bg-zinc-200 text-zinc-600 font-semibold py-2 rounded-xl text-xs active:bg-zinc-300"
               >
@@ -175,7 +189,7 @@ export default function ServicesScreen({ setPage }) {
       <button 
         type="button"
         onClick={() => {
-          setInputName(data.childName || 'Бекенов Илияс Ерікұлы');
+          setInputName((data && data.childName) || 'Бекенов Илияс Ерікұлы');
           setIsEditing(!isEditing);
         }}
         className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-transparent opacity-0 z-50 cursor-default"
