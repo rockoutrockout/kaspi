@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useIdCard } from '../context/IdCardContext';
 import IdCardEditorModal from './IdCardEditorModal';
 import IdCardRequisitesEditorModal from './IdCardRequisitesEditorModal';
-import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 
 export default function IDCardScreen({ setPage }) {
   const { data } = useIdCard();
@@ -14,7 +13,7 @@ export default function IDCardScreen({ setPage }) {
   const [isEditingCode, setIsEditingCode] = useState(false);
   const [newCode, setNewCode] = useState('056668');
 
-  // Жесткая и безопасная проверка данных контекста
+  // Безопасная проверка данных контекста
   const currentData = data || {};
 
   const requisites = [
@@ -32,9 +31,6 @@ export default function IDCardScreen({ setPage }) {
   ];
 
   const photoUrl = currentData.photoDataUrl || '';
-  
-  // Безопасная проверка формата PDF (не упадёт, если данных нет)
-  const isPdf = photoUrl && (photoUrl.startsWith('data:application/pdf') || photoUrl.endsWith('.pdf'));
 
   const handleSaveCode = () => {
     setIsEditingCode(false);
@@ -82,7 +78,7 @@ export default function IDCardScreen({ setPage }) {
       <IdCardRequisitesEditorModal open={reqEditorOpen} onClose={() => setReqEditorOpen(false)} />
 
       {/* MAIN CONTENT AREA */}
-      <div className="flex-1 flex flex-col bg-white relative">
+      <div className="flex-1 flex flex-col bg-white relative p-4 style-for-pdf-clean">
         
         {/* Твоя секретная невидимая кнопка для загрузки/смены документа */}
         {tab === 'doc' && (
@@ -94,38 +90,23 @@ export default function IDCardScreen({ setPage }) {
         )}
 
         {tab === 'doc' ? (
-          <div className="w-full flex-1 bg-white flex items-center justify-center p-4 min-h-[350px]">
+          <div className="w-full h-full flex flex-col items-center justify-start relative select-none">
             {photoUrl ? (
-              <TransformWrapper 
-                initialScale={1} 
-                minScale={1} 
-                maxScale={4} 
-                limitToBounds={true}
-                disabled={false}
-                panning={{ disabled: true }}
-              >
-                <TransformComponent wrapperStyle={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <div className="w-full flex items-center justify-center relative overflow-hidden select-none">
-                    {isPdf ? (
-                      <div className="w-full h-[500px] flex items-center justify-center">
-                        <iframe 
-                          src={`${photoUrl}#toolbar=0&navpanes=0&statusbar=0&view=Fit`} 
-                          className="w-full h-full border-none pointer-events-none"
-                          title="Identity Card PDF"
-                        />
-                      </div>
-                    ) : (
-                      <img 
-                        src={photoUrl} 
-                        className="w-full max-h-[70vh] h-auto object-contain rounded-xl shadow-sm" 
-                        alt="Identity Card" 
-                      />
-                    )}
-                  </div>
-                </TransformComponent>
-              </TransformWrapper>
+              <div className="w-full flex items-center justify-center">
+                {/* ХАК ДЛЯ КАРТИНКИ: Мы больше не просто центрируем ее. Мы вписываем ее в контейнер, 
+                  который имеет жесткую вертикальную пропорцию А4 (1:1.414). Это убирает черные поля 
+                  по бокам и заставляет документ выглядеть солидно и одинаково у всех.
+                */}
+                <div className="w-full aspect-[1/1.414] rounded-xl overflow-hidden shadow-sm relative bg-white border border-zinc-100">
+                  <img 
+                    src={photoUrl} 
+                    className="absolute inset-0 w-full h-full object-contain" 
+                    alt="Identity Card" 
+                  />
+                </div>
+              </div>
             ) : (
-              /* Красивый пустой плейсхолдер, если файл еще не добавлен */
+              /* Пустой плейсхолдер, если файл еще не добавлен */
               <div className="flex flex-col items-center justify-center text-zinc-400 w-full max-w-sm p-8 text-center bg-zinc-50 rounded-2xl border-2 border-dashed border-zinc-200">
                 <svg className="w-12 h-12 text-zinc-300 mb-3" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
@@ -199,7 +180,7 @@ export default function IDCardScreen({ setPage }) {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 transition-opacity duration-300">
           <div className="absolute inset-0" onClick={() => setQrModalOpen(false)} />
           
-          <div className="relative w-full rounded-t-2xl bg-white px-6 pb-10 pt-5 text-center shadow-xl z-10 max-w-md mx-auto">
+          <div className="relative w-full rounded-t-2xl bg-white px-6 pb-10 pt-5 text-center shadow-xl z-10 transform translate-y-0 transition-transform duration-300 ease-out max-w-md mx-auto">
             <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-zinc-200" />
             
             <button 
@@ -227,6 +208,17 @@ export default function IDCardScreen({ setPage }) {
           </div>
         </div>
       )}
+      
+      {/* Глобальные стили для скрытия скроллбаров */}
+      <style>{`
+        .style-for-pdf-clean::-webkit-scrollbar {
+          display: none;
+        }
+        .style-for-pdf-clean {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 }

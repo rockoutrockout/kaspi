@@ -1,41 +1,65 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const IdCardContext = createContext();
 
-const initialData = {
-  photoDataUrl: null, // Одно общее фото для дока
-  surname: 'БЕКЕНОВ',
-  name: 'ИЛИЯС',
-  patronymic: 'ЕРІКҰЛЫ',
-  iin: '020820501234',
-  docNum: '052752327',
-  birthDate: '20.08.2002',
-  birthPlace: 'АЛМАТЫ',
-  nationality: 'ҚАЗАҚ',
-  issuer: 'ҚР ІШКІ ІСТЕР МИНИСТРЛІГІ',
-  issueDate: '03.03.2020',
-  validDate: '02.03.2030'
-};
-
-export const IdCardProvider = ({ children }) => {
+export function IdCardProvider({ children }) {
   const [data, setData] = useState(() => {
-    const savedData = localStorage.getItem('kaspi_idcard_data');
-    return savedData ? JSON.parse(savedData) : initialData;
+    // Безопасно вытаскиваем данные при старте приложения
+    const saved = localStorage.getItem('kaspi_id_data');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Ошибка парсинга localStorage:", e);
+      }
+    }
+    // Если в localStorage ничего нет, возвращаем пустые дефолтные поля
+    return {
+      surname: 'ИВАНОВ',
+      name: 'ИВАН',
+      patronymic: 'ИВАНОВИЧ',
+      iin: '000101500123',
+      docNum: '012345678',
+      birthDate: '01.01.2000',
+      birthPlace: 'РК, Г. АЛМАТЫ',
+      nationality: 'КАЗАХ',
+      issuer: 'МВД РК',
+      issueDate: '15.05.2020',
+      validDate: '15.05.2030',
+      photoDataUrl: '' // Изначально пустая строка, чтобы ничего не вешало билд
+    };
   });
 
-  const update = (newData) => {
+  // Функция для обновления только фотографии/документа
+  const updatePhoto = (newDataUrl) => {
+    if (!newDataUrl) return;
     setData((prev) => {
-      const updated = { ...prev, ...newData };
-      localStorage.setItem('kaspi_idcard_data', JSON.stringify(updated));
+      const updated = { ...prev, photoDataUrl: newDataUrl };
+      localStorage.setItem('kaspi_id_data', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // Функция для обновления текстовых реквизитов (из второй модалки)
+  const updateRequisites = (newFields) => {
+    setData((prev) => {
+      const updated = { ...prev, ...newFields };
+      localStorage.setItem('kaspi_id_data', JSON.stringify(updated));
       return updated;
     });
   };
 
   return (
-    <IdCardContext.Provider value={{ data, update }}>
+    <IdCardContext.Provider value={{ data, updatePhoto, updateRequisites }}>
       {children}
     </IdCardContext.Provider>
   );
-};
+}
 
-export const useIdCard = () => useContext(IdCardContext);
+export function useIdCard() {
+  const context = useContext(IdCardContext);
+  if (!context) {
+    throw new Error('useIdCard должен использоваться внутри IdCardProvider');
+  }
+  return context;
+}
