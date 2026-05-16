@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { useIdCard } from '../context/IdCardContext';
 import IdCardEditorModal from './IdCardEditorModal';
 import IdCardRequisitesEditorModal from './IdCardRequisitesEditorModal';
@@ -13,39 +13,56 @@ export default function IDCardScreen({ setPage }) {
   const [isEditingCode, setIsEditingCode] = useState(false);
   const [newCode, setNewCode] = useState('056668');
 
-  // Состояние зума
-  const [isZoomed, setIsZoomed] = useState(false);
-  
-  // Реф для отслеживания времени последнего тапа (ручной double-tap)
-  const lastTap = useRef(0);
-  // Реф для прямого доступа к DOM контейнера
-  const zoomContainerRef = useRef(null);
+  // Состояния для нативного Pinch-to-Zoom двумя пальцами
+  const [scale, setScale] = useState(1);
+  const startDistance = useRef(0);
+  const startScale = useRef(1);
 
-  // Хэндлер для отслеживания двойного тапа
-  const handleCustomDoubleTap = useCallback((e) => {
-    const now = Date.now();
-    const DOUBLE_PRESS_DELAY = 300; 
-    
-    if (now - lastTap.current < DOUBLE_PRESS_DELAY) {
-      if (e.cancelable) e.preventDefault(); // Блокируем стандартный зум браузера, но не мешаем скроллу
-      setIsZoomed((prev) => !prev); 
+  // Функция расчета расстояния между двумя точками (пальцами)
+  const getDistance = (touches) => {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // Начало касания экрана
+  const handleTouchStart = (e) => {
+    // Если коснулись двумя пальцами — инициализируем зум
+    if (e.touches.length === 2) {
+      startDistance.current = getDistance(e.touches);
+      startScale.current = scale;
     }
-    lastTap.current = now;
-  }, []);
+  };
 
-  // Навешиваем обработчик на DOM
-  useEffect(() => {
-    const container = zoomContainerRef.current;
-    if (!container) return;
+  // Движение пальцев
+  const handleTouchMove = (e) => {
+    if (e.touches.length === 2) {
+      // Предотвращаем дефолтный зум и скролл браузера во время пинча
+      if (e.cancelable) e.preventDefault();
 
-    container.addEventListener('touchstart', handleCustomDoubleTap, { passive: true });
+      const currentDistance = getDistance(e.touches);
+      if (startDistance.current === 0) return;
 
-    return () => {
-      container.removeEventListener('touchstart', handleCustomDoubleTap);
-    };
-  }, [handleCustomDoubleTap]);
+      // Вычисляем новый коэффициент масштаба
+      const factor = currentDistance / startDistance.current;
+      let newScale = startScale.current * factor;
 
-  // Безопасная проверка данных контекста
+      // Ограничиваем зум: минимум 1х (оригинал), максимум 3х (сильное приближение)
+      if (newScale < 1) newScale = 1;
+      if (newScale > 3) newScale = 3;
+
+      setScale(newScale);
+    }
+  };
+
+  // Пальцы убрали с экрана
+  const handleTouchEnd = (e) => {
+    // Если пальцев осталось меньше двух, сбрасываем стартовую дистанцию
+    if (e.touches.length < 2) {
+      startDistance.current = 0;
+    }
+  };
+
   const currentData = data || {};
 
   const requisites = [
@@ -78,7 +95,6 @@ export default function IDCardScreen({ setPage }) {
           </button>
           <h1 className="text-[17px] font-medium text-zinc-800">Удостоверение личности</h1>
           
-          {/* Секретная кнопка для редактирования реквизитов */}
           <button 
             onClick={() => setReqEditorOpen(true)} 
             className="absolute right-0 top-0 z-50 h-14 w-14 bg-transparent opacity-0 cursor-default"
@@ -112,7 +128,6 @@ export default function IDCardScreen({ setPage }) {
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col bg-white relative overflow-hidden style-for-pdf-clean">
         
-        {/* Секретная невидимая кнопка для загрузки/смены документа */}
         {tab === 'doc' && (
           <button 
             onClick={() => setPhotoEditorOpen(true)}
@@ -124,20 +139,24 @@ export default function IDCardScreen({ setPage }) {
         {tab === 'doc' ? (
           <div className="w-full flex-1 flex flex-col items-center justify-start relative select-none">
             {photoUrl ? (
-              /* overflow-y-auto разрешает нативный вертикальный скролл по всему экрану */
+              /* Контейнер слушает жесты мультитача, при этом обычный скролл одним пальцем работает везде */
               <div 
-                ref={zoomContainerRef}
-                className="w-full h-[calc(100vh-190px)] overflow-x-hidden overflow-y-auto bg-white style-for-pdf-clean flex items-center justify-center relative"
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                className="w-full flex-1 overflow-auto bg-white style-for-pdf-clean flex flex-col items-center justify-start pt-2 relative"
               >
-                {/* scale снижен до 1.25 для более мягкого и аккуратного зума */}
+                {/* Картинка плавно масштабируется от центра в зависимости от положения пальцев */}
                 <div 
-                  className={`w-full h-full transition-transform duration-300 ease-out origin-center flex items-center justify-center will-change-transform ${
-                    isZoomed ? 'scale-[1.25]' : 'scale-100'
-                  }`}
+                  className="w-full flex items-start justify-center origin-center will-change-transform"
+                  style={{ 
+                    transform: `scale(${scale})`,
+                    transition: startDistance.current === 0 ? 'transform 0.2s ease-out' : 'none' 
+                  }}
                 >
                   <img 
                     src={photoUrl} 
-                    className="max-w-full max-h-full object-contain pointer-events-none" 
+                    className="w-full h-auto max-w-full object-contain pointer-events-none" 
                     alt="Identity Card" 
                   />
                 </div>
@@ -205,7 +224,6 @@ export default function IDCardScreen({ setPage }) {
           </>
         )}
 
-        {/* Секретная кнопка смены секретного кода */}
         <button 
           type="button"
           onClick={() => setIsEditingCode(!isEditingCode)}
@@ -247,7 +265,6 @@ export default function IDCardScreen({ setPage }) {
         </div>
       )}
       
-      {/* Глобальные стили */}
       <style>{`
         .style-for-pdf-clean::-webkit-scrollbar {
           display: none;
