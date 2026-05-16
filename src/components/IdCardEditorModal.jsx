@@ -86,17 +86,16 @@ export default function IDCardScreen({ setPage }) {
         )}
 
         {tab === 'doc' ? (
-          <div className="w-full bg-white relative flex items-center justify-center">
+          <div className="w-full flex-1 bg-white flex items-center justify-center p-4">
             <TransformWrapper 
               initialScale={1} 
               minScale={1} 
               maxScale={4} 
-              centerOnInit={true}
               limitToBounds={true}
               disabled={false}
               panning={{ disabled: true }}
             >
-              <TransformComponent wrapperStyle={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <TransformComponent wrapperStyle={{ width: "100%", display: "flex", alignItems: "center", justifycode: "center" }}>
                 <div className="w-full flex items-center justify-center relative overflow-hidden select-none">
                   {data.photoDataUrl ? (
                     isPdf ? (
@@ -111,12 +110,12 @@ export default function IDCardScreen({ setPage }) {
                     ) : (
                       <img 
                         src={data.photoDataUrl} 
-                        className="w-full h-auto object-contain" 
+                        className="w-full max-h-[70vh] h-auto object-contain rounded-xl shadow-sm" 
                         alt="Identity Card" 
                       />
                     )
                   ) : (
-                    <div className="flex flex-col items-center justify-center text-zinc-400 w-full text-sm p-8 text-center bg-zinc-50">
+                    <div className="flex flex-col items-center justify-center text-zinc-400 w-full text-sm p-8 text-center bg-zinc-50 rounded-xl">
                       <span>Удостоверение личности не загружено</span>
                     </div>
                   )}
