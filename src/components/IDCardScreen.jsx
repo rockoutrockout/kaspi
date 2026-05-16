@@ -21,25 +21,24 @@ export default function IDCardScreen({ setPage }) {
   // Реф для прямого доступа к DOM контейнера
   const zoomContainerRef = useRef(null);
 
-  // Обернули в useCallback, чтобы убрать варнинг eslint
+  // Хэндлер для отслеживания двойного тапа
   const handleCustomDoubleTap = useCallback((e) => {
-    if (e.cancelable) e.preventDefault();
-    
     const now = Date.now();
     const DOUBLE_PRESS_DELAY = 300; 
     
     if (now - lastTap.current < DOUBLE_PRESS_DELAY) {
+      if (e.cancelable) e.preventDefault(); // Блокируем стандартный зум браузера, но не мешаем скроллу
       setIsZoomed((prev) => !prev); 
     }
     lastTap.current = now;
   }, []);
 
-  // Навешиваем обработчик с { passive: false } напрямую на DOM
+  // Навешиваем обработчик на DOM
   useEffect(() => {
     const container = zoomContainerRef.current;
     if (!container) return;
 
-    container.addEventListener('touchstart', handleCustomDoubleTap, { passive: false });
+    container.addEventListener('touchstart', handleCustomDoubleTap, { passive: true });
 
     return () => {
       container.removeEventListener('touchstart', handleCustomDoubleTap);
@@ -125,14 +124,15 @@ export default function IDCardScreen({ setPage }) {
         {tab === 'doc' ? (
           <div className="w-full flex-1 flex flex-col items-center justify-start relative select-none">
             {photoUrl ? (
+              /* overflow-y-auto разрешает нативный вертикальный скролл по всему экрану */
               <div 
                 ref={zoomContainerRef}
-                className="w-full h-[calc(100vh-190px)] overflow-auto bg-white style-for-pdf-clean flex items-center justify-center relative touch-none"
-                style={{ touchAction: 'none' }}
+                className="w-full h-[calc(100vh-190px)] overflow-x-hidden overflow-y-auto bg-white style-for-pdf-clean flex items-center justify-center relative"
               >
+                {/* scale снижен до 1.25 для более мягкого и аккуратного зума */}
                 <div 
                   className={`w-full h-full transition-transform duration-300 ease-out origin-center flex items-center justify-center will-change-transform ${
-                    isZoomed ? 'scale-[1.45]' : 'scale-100'
+                    isZoomed ? 'scale-[1.25]' : 'scale-100'
                   }`}
                 >
                   <img 
