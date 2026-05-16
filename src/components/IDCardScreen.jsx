@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useIdCard } from '../context/IdCardContext';
 import IdCardEditorModal from './IdCardEditorModal';
 import IdCardRequisitesEditorModal from './IdCardRequisitesEditorModal';
@@ -12,6 +12,39 @@ export default function IDCardScreen({ setPage }) {
   
   const [isEditingCode, setIsEditingCode] = useState(false);
   const [newCode, setNewCode] = useState('056668');
+
+  // Состояние зума
+  const [isZoomed, setIsZoomed] = useState(false);
+  
+  // Реф для отслеживания времени последнего тапа (ручной double-tap)
+  const lastTap = useRef(0);
+  // Реф для прямого доступа к DOM контейнера
+  const zoomContainerRef = useRef(null);
+
+  // Обернули в useCallback, чтобы убрать варнинг eslint
+  const handleCustomDoubleTap = useCallback((e) => {
+    if (e.cancelable) e.preventDefault();
+    
+    const now = Date.now();
+    const DOUBLE_PRESS_DELAY = 300; 
+    
+    if (now - lastTap.current < DOUBLE_PRESS_DELAY) {
+      setIsZoomed((prev) => !prev); 
+    }
+    lastTap.current = now;
+  }, []);
+
+  // Навешиваем обработчик с { passive: false } напрямую на DOM
+  useEffect(() => {
+    const container = zoomContainerRef.current;
+    if (!container) return;
+
+    container.addEventListener('touchstart', handleCustomDoubleTap, { passive: false });
+
+    return () => {
+      container.removeEventListener('touchstart', handleCustomDoubleTap);
+    };
+  }, [handleCustomDoubleTap]);
 
   // Безопасная проверка данных контекста
   const currentData = data || {};
@@ -78,9 +111,9 @@ export default function IDCardScreen({ setPage }) {
       <IdCardRequisitesEditorModal open={reqEditorOpen} onClose={() => setReqEditorOpen(false)} />
 
       {/* MAIN CONTENT AREA */}
-      <div className="flex-1 flex flex-col bg-white relative p-4 style-for-pdf-clean">
+      <div className="flex-1 flex flex-col bg-white relative overflow-hidden style-for-pdf-clean">
         
-        {/* Твоя секретная невидимая кнопка для загрузки/смены документа */}
+        {/* Секретная невидимая кнопка для загрузки/смены документа */}
         {tab === 'doc' && (
           <button 
             onClick={() => setPhotoEditorOpen(true)}
@@ -90,24 +123,28 @@ export default function IDCardScreen({ setPage }) {
         )}
 
         {tab === 'doc' ? (
-          <div className="w-full h-full flex flex-col items-center justify-start relative select-none">
+          <div className="w-full flex-1 flex flex-col items-center justify-start relative select-none">
             {photoUrl ? (
-              <div className="w-full flex items-center justify-center">
-                {/* ХАК ДЛЯ КАРТИНКИ: Мы больше не просто центрируем ее. Мы вписываем ее в контейнер, 
-                  который имеет жесткую вертикальную пропорцию А4 (1:1.414). Это убирает черные поля 
-                  по бокам и заставляет документ выглядеть солидно и одинаково у всех.
-                */}
-                <div className="w-full aspect-[1/1.414] rounded-xl overflow-hidden shadow-sm relative bg-white border border-zinc-100">
+              <div 
+                ref={zoomContainerRef}
+                className="w-full h-[calc(100vh-190px)] overflow-auto bg-white style-for-pdf-clean flex items-center justify-center relative touch-none"
+                style={{ touchAction: 'none' }}
+              >
+                <div 
+                  className={`w-full h-full transition-transform duration-300 ease-out origin-center flex items-center justify-center will-change-transform ${
+                    isZoomed ? 'scale-[1.45]' : 'scale-100'
+                  }`}
+                >
                   <img 
                     src={photoUrl} 
-                    className="absolute inset-0 w-full h-full object-contain" 
+                    className="max-w-full max-h-full object-contain pointer-events-none" 
                     alt="Identity Card" 
                   />
                 </div>
               </div>
             ) : (
-              /* Пустой плейсхолдер, если файл еще не добавлен */
-              <div className="flex flex-col items-center justify-center text-zinc-400 w-full max-w-sm p-8 text-center bg-zinc-50 rounded-2xl border-2 border-dashed border-zinc-200">
+              /* Пустой плейсхолдер */
+              <div className="flex flex-col items-center justify-center text-zinc-400 w-full max-w-sm p-8 mt-20 text-center bg-zinc-50 rounded-2xl border-2 border-dashed border-zinc-200 mx-4">
                 <svg className="w-12 h-12 text-zinc-300 mb-3" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
                 </svg>
@@ -117,7 +154,8 @@ export default function IDCardScreen({ setPage }) {
             )}
           </div>
         ) : (
-          <div className="flex-1 p-4 bg-[#F2F4F7]">
+          /* РЕКВИЗИТЫ */
+          <div className="flex-1 p-4 bg-[#F2F4F7] overflow-y-auto">
             <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
               <div className="divide-y divide-zinc-100">
                 {requisites.map((item, idx) => (
@@ -209,7 +247,7 @@ export default function IDCardScreen({ setPage }) {
         </div>
       )}
       
-      {/* Глобальные стили для скрытия скроллбаров */}
+      {/* Глобальные стили */}
       <style>{`
         .style-for-pdf-clean::-webkit-scrollbar {
           display: none;
