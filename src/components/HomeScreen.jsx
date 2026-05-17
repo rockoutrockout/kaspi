@@ -12,7 +12,7 @@ function SearchIcon({ className = 'h-4 w-4' }) {
 function KaspiIcon({ type, className = 'h-8 w-8' }) {
   const common = {
     stroke: 'currentColor',
-    strokeWidth: 1.65,
+    strokeWidth: 1.95,
     strokeLinecap: 'round',
     strokeLinejoin: 'round',
   };
@@ -131,7 +131,7 @@ function ServiceButton({ icon, label, onClick, badge, qrBadge }) {
       className="relative flex h-[82px] flex-col items-center justify-start gap-2 rounded-lg pt-1.5 text-center active:bg-zinc-100"
     >
       <span className="relative text-[#D9352A]">
-        <KaspiIcon type={icon} className="h-[35px] w-[35px]" />
+        <KaspiIcon type={icon} className="h-[40px] w-[40px]" />
         {qrBadge && <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-[#39B54A] ring-1 ring-white" />}
         {badge && (
           <span className="absolute -right-3 -top-1 rounded-full bg-[#D9352A] px-1 text-[7px] font-bold leading-[10px] text-white">
@@ -139,7 +139,7 @@ function ServiceButton({ icon, label, onClick, badge, qrBadge }) {
           </span>
         )}
       </span>
-      <span className="text-[12.5px] font-normal leading-[14px] text-[#3F454B]">{label}</span>
+      <span className="text-[12.5px] font-medium leading-[14px] text-[#3F454B]">{label}</span>
     </button>
   );
 }
@@ -153,19 +153,6 @@ function OfferRow({ left, title, subtitle, right, onClick }) {
         <p className="truncate text-[11px] leading-3 text-zinc-400">{subtitle}</p>
       </div>
       {right}
-    </button>
-  );
-}
-
-function ViewedItem({ color, title, price }) {
-  return (
-    <button type="button" className="min-w-[82px] text-left active:opacity-75">
-      <div className={`relative h-[70px] w-[90px] overflow-hidden rounded-md ${color}`}>
-        <span className="absolute left-1 top-1 rounded bg-[#F14635] px-1 text-[9px] font-black leading-4 text-white">0·0·12</span>
-        <div className="absolute bottom-1 right-1 h-10 w-8 rounded bg-zinc-900/75" />
-      </div>
-      <p className="mt-1 truncate text-[10.5px] leading-3 text-zinc-700">{title}</p>
-      <p className="truncate text-[10px] leading-3 text-zinc-400">{price}</p>
     </button>
   );
 }
@@ -235,12 +222,7 @@ export default function HomeScreen({ setPage }) {
 
           <section className="mt-2 bg-white px-3 pb-2 pt-1">
             <h2 className="text-[15px] font-bold leading-6 text-zinc-900">Вы недавно смотрели</h2>
-            <div className="mt-1 flex gap-2 overflow-x-auto no-scrollbar">
-              <ViewedItem color="bg-[#95D8D6]" title="Poco X5 Pro 8 г..." price="от 89 990 ₸" />
-              <ViewedItem color="bg-[#E5F1F3]" title="OneTwo таблетк..." price="от 3 450 ₸" />
-              <ViewedItem color="bg-[#E1E7EC]" title="Poco X4 GT 8 ГБ..." price="от 109 990 ₸" />
-              <ViewedItem color="bg-[#F0E2CD]" title="Redmi Note 12..." price="от 74 990 ₸" />
-            </div>
+            <div className="mt-1 h-[86px]" />
           </section>
         </main>
 
