@@ -11,11 +11,10 @@ module.exports = {
       },
       fontFamily: {
         sans: [
+          'Roboto',
           '-apple-system',
           'BlinkMacSystemFont',
-          'SF Pro Text',
           'Segoe UI',
-          'Roboto',
           'Helvetica',
           'Arial',
           'sans-serif',
