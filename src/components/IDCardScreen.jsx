@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useIdCard } from '../context/IdCardContext';
 import IdCardEditorModal from './IdCardEditorModal';
 import IdCardRequisitesEditorModal from './IdCardRequisitesEditorModal';
@@ -15,9 +15,15 @@ export default function IDCardScreen({ setPage }) {
 
   // Состояния для Pinch-to-Zoom
   const [scale, setScale] = useState(1);
+  const [translate, setTranslate] = useState({ x: 0, y: 0 });
   const scaleRef = useRef(1);
+  const translateRef = useRef({ x: 0, y: 0 });
   const startDistance = useRef(0);
   const startScale = useRef(1);
+  const startTranslate = useRef({ x: 0, y: 0 });
+  const startMidpoint = useRef({ x: 0, y: 0 });
+  const dragStart = useRef({ x: 0, y: 0 });
+  const isDragging = useRef(false);
   const zoomContainerRef = useRef(null);
 
   const getDistance = (touches) => {
@@ -26,14 +32,57 @@ export default function IDCardScreen({ setPage }) {
     return Math.sqrt(dx * dx + dy * dy);
   };
 
+  const getMidpoint = (touches) => ({
+    x: (touches[0].clientX + touches[1].clientX) / 2,
+    y: (touches[0].clientY + touches[1].clientY) / 2,
+  });
+
+  const clampTranslate = useCallback((nextTranslate, nextScale) => {
+    if (nextScale <= 1.01) {
+      return { x: 0, y: 0 };
+    }
+
+    const container = zoomContainerRef.current;
+    const width = container?.clientWidth || window.innerWidth || 390;
+    const height = container?.clientHeight || window.innerHeight || 650;
+    const limitX = Math.max(90, (width * (nextScale - 1)) / 2 + 90);
+    const limitY = Math.max(140, (height * (nextScale - 1)) / 2 + 140);
+
+    return {
+      x: Math.min(limitX, Math.max(-limitX, nextTranslate.x)),
+      y: Math.min(limitY, Math.max(-limitY, nextTranslate.y)),
+    };
+  }, []);
+
+  const applyZoomState = useCallback((nextScale, nextTranslate) => {
+    const normalizedScale = Math.min(5, Math.max(1, nextScale));
+    const normalizedTranslate = clampTranslate(nextTranslate, normalizedScale);
+
+    scaleRef.current = normalizedScale;
+    translateRef.current = normalizedTranslate;
+    setScale(normalizedScale);
+    setTranslate(normalizedTranslate);
+  }, [clampTranslate]);
+
   useEffect(() => {
     const container = zoomContainerRef.current;
     if (!container) return;
 
     const handleTouchStart = (e) => {
       if (e.touches.length === 2) {
+        if (e.cancelable) e.preventDefault();
         startDistance.current = getDistance(e.touches);
         startScale.current = scaleRef.current;
+        startTranslate.current = translateRef.current;
+        startMidpoint.current = getMidpoint(e.touches);
+        isDragging.current = false;
+      } else if (e.touches.length === 1 && scaleRef.current > 1) {
+        if (e.cancelable) e.preventDefault();
+        dragStart.current = {
+          x: e.touches[0].clientX - translateRef.current.x,
+          y: e.touches[0].clientY - translateRef.current.y,
+        };
+        isDragging.current = true;
       }
     };
 
@@ -45,12 +94,26 @@ export default function IDCardScreen({ setPage }) {
 
         const factor = currentDistance / startDistance.current;
         let newScale = startScale.current * factor;
+        const currentMidpoint = getMidpoint(e.touches);
+        const midpointShift = {
+          x: currentMidpoint.x - startMidpoint.current.x,
+          y: currentMidpoint.y - startMidpoint.current.y,
+        };
+        const nextTranslate = {
+          x: startTranslate.current.x + midpointShift.x,
+          y: startTranslate.current.y + midpointShift.y,
+        };
 
         if (newScale < 1) newScale = 1;
-        if (newScale > 3) newScale = 3;
+        if (newScale > 5) newScale = 5;
 
-        scaleRef.current = newScale;
-        setScale(newScale);
+        applyZoomState(newScale, nextTranslate);
+      } else if (e.touches.length === 1 && isDragging.current && scaleRef.current > 1) {
+        if (e.cancelable) e.preventDefault();
+        applyZoomState(scaleRef.current, {
+          x: e.touches[0].clientX - dragStart.current.x,
+          y: e.touches[0].clientY - dragStart.current.y,
+        });
       }
     };
 
@@ -58,18 +121,23 @@ export default function IDCardScreen({ setPage }) {
       if (e.touches.length < 2) {
         startDistance.current = 0;
       }
+      if (e.touches.length === 0) {
+        isDragging.current = false;
+      }
     };
 
     container.addEventListener('touchstart', handleTouchStart, { passive: false });
     container.addEventListener('touchmove', handleTouchMove, { passive: false });
     container.addEventListener('touchend', handleTouchEnd, { passive: false });
+    container.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
     return () => {
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, []); 
+  }, [applyZoomState]); 
 
   // Приоритет измененных данных из Context над дефолтным ФИО
   const currentData = {
@@ -111,7 +179,7 @@ export default function IDCardScreen({ setPage }) {
   };
 
   return (
-    <div className="relative flex h-full min-h-screen w-full flex-col bg-[#F2F4F7] overflow-y-auto">
+    <div className="relative flex h-full min-h-screen w-full flex-col bg-[#F2F4F7] overflow-y-auto text-[1.04rem]">
       {/* HEADER */}
       <header className="relative bg-white pt-safe shadow-sm z-10 shrink-0">
         <div className="flex items-center justify-between px-4 py-3">
@@ -166,19 +234,25 @@ export default function IDCardScreen({ setPage }) {
             {photoUrl ? (
               <div 
                 ref={zoomContainerRef}
-                className="w-full flex-1 overflow-auto bg-white style-for-pdf-clean flex flex-col items-center justify-start pt-2 relative"
+                className="w-full flex-1 overflow-hidden bg-white style-for-pdf-clean flex flex-col items-center justify-start pt-2 relative"
+                style={{
+                  touchAction: 'none',
+                  overscrollBehavior: 'contain',
+                }}
               >
                 <div 
                   className="w-full flex items-start justify-center origin-center will-change-transform"
                   style={{ 
-                    transform: `scale(${scale})`,
-                    transition: startDistance.current === 0 ? 'transform 0.15s ease-out' : 'none' 
+                    transform: `translate3d(${translate.x}px, ${translate.y}px, 0) scale(${scale})`,
+                    transition: startDistance.current === 0 && !isDragging.current ? 'transform 0.12s ease-out' : 'none',
+                    cursor: scale > 1 ? 'grab' : 'default',
                   }}
                 >
                   <img 
                     src={photoUrl} 
-                    className="w-full h-auto max-w-full object-contain pointer-events-none" 
+                    className="w-full h-auto max-w-full object-contain pointer-events-none select-none" 
                     alt="Identity Card" 
+                    draggable={false}
                   />
                 </div>
               </div>
